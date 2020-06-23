@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 const Dishes = require('./models/dishes');
 const Promotions = require('./models/promotion');
 const Leaders = require('./models/leaders');
+const { EDESTADDRREQ } = require('constants');
 
 const url = 'mongodb://localhost:27017/conFusion';
 const connect = mongoose.connect(url);
@@ -36,9 +37,10 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser('12345-67890-09876-54321'));
 
 //doing authentication right before user fetches data from the server
+/*
 function auth(req,res,next){
   console.log(req.headers);
   var authHeader = req.headers.authorization;
@@ -52,7 +54,7 @@ function auth(req,res,next){
   var username = auth[0];
   var password = auth[1];
 
-  if(username == 'admin' && password == 'password'){
+  if(username === 'admin' && password === 'password'){
     next();
   }
   else{
@@ -60,6 +62,47 @@ function auth(req,res,next){
     res.setHeader('WWW-Authenticate','Basic');
     err.status = 401;
     next(err);
+  }
+}
+*/
+
+//cookie parser auth function
+function auth(req,res,next){
+  console.log(req.signedCookies);
+
+  if(!req.signedCookies.user){
+    var authHeader = req.headers.authorization;
+    if(!authHeader){
+      var err = new Error('you are not authenticated');
+
+      res.setHeader('WWW-Authenticate', 'Basic');
+      err.status = 401;
+      return next(err);
+    }
+    var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    var username = auth[0];
+    var password = auth[1];
+
+    if(username === 'admin' && password === 'password'){
+      res.cookie('user', 'admin', {signed : true})
+      next();
+    }
+    else{
+      var err = new Error('You are not autheticated!');
+      res.setHeader('WWW-Authenticate','Basic');
+      err.status = 401;
+      next(err);
+    }
+  }
+  else{
+    if(req.signedCookies.user === 'admin'){
+      next();
+    }
+    else{
+      var err = new Error('You are not autheticated!');
+      err.status = 401;
+      next(err);
+    }
   }
 }
 
