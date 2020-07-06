@@ -78,8 +78,8 @@ router.post('/login', (req,res,next) => {
 
 router.get('/logout', (req,res) => {
   if(req.session) {
-    req.session.destroy();
-    res.clearCookie('session-id');
+    req.session.destroy(); // remove session from server side
+    res.clearCookie('session-id'); // clear from client side
     res.redirect('/');
   }
   else{
